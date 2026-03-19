@@ -1,0 +1,28 @@
+# Puzzle inputs are personal and should not be shared (AoC policy)
+**/input.txt
+
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go build cache
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allowedTools": [
+      "Read",
+      "Write",
+      "Bash(go *)",
+      "Bash(gofmt *)",
+      "Bash(golangci-lint *)",
+      "Bash(cd day* && go *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)",
+      "Bash(git *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write(*.go)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gofmt -w $CLAUDE_FILE_PATH",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
