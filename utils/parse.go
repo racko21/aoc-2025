@@ -37,6 +37,15 @@ func ReadString(path string) string {
 	return strings.TrimSpace(string(data))
 }
 
+// MustParseInt64 converts string to int64, fatals on error.
+func MustParseInt64(s string) int64 {
+	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	if err != nil {
+		log.Fatalf("MustParseInt64(%q): %v", s, err)
+	}
+	return n
+}
+
 // Atoi converts string to int, panics on error.
 func Atoi(s string) int {
 	n, err := strconv.Atoi(strings.TrimSpace(s))
