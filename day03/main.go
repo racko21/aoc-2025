@@ -12,7 +12,6 @@ import (
 	"strings"
 )
 
-
 // maxKJoltage returns the largest k-digit number that can be formed by choosing
 // k digits from s in their original order, using a greedy window approach.
 func maxKJoltage(s string, k int) int64 {
