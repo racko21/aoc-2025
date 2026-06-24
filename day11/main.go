@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func parseGraph(filename string) map[string][]string {
@@ -89,6 +90,24 @@ func solve(filename string) (int, int) {
 }
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "1":
+			start := time.Now()
+			graph := parseGraph("input.txt")
+			result := countPaths(graph, "you", make(map[string]int))
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 1:", result)
+			return
+		case "2":
+			start := time.Now()
+			graph := parseGraph("input.txt")
+			result := countPathsRequired(graph, "svr", false, false, make(map[state2]int))
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 2:", result)
+			return
+		}
+	}
 	p1, p2 := solve("input.txt")
 	fmt.Println("Part 1:", p1)
 	fmt.Println("Part 2:", p2)

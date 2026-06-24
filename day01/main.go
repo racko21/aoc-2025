@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 // countZeroCrossings counts how many times position 0 is hit when rotating
@@ -74,6 +75,22 @@ func solve(filename string) (int, int) {
 }
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "1":
+			start := time.Now()
+			part1, _ := solve("input.txt")
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 1:", part1)
+			return
+		case "2":
+			start := time.Now()
+			_, part2 := solve("input.txt")
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 2:", part2)
+			return
+		}
+	}
 	part1, part2 := solve("input.txt")
 	fmt.Println("Part 1:", part1)
 	fmt.Println("Part 2:", part2)

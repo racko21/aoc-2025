@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/racko21/aoc-2025/utils"
 )
@@ -153,6 +154,30 @@ func sumRepeatedInRanges(ranges [][2]int64) int64 {
 }
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "1":
+			start := time.Now()
+			data, err := os.ReadFile("input.txt")
+			if err != nil {
+				log.Fatal(err)
+			}
+			result := sumDoubledInRanges(parseRanges(string(data)))
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 1:", result)
+			return
+		case "2":
+			start := time.Now()
+			data, err := os.ReadFile("input.txt")
+			if err != nil {
+				log.Fatal(err)
+			}
+			result := sumRepeatedInRanges(parseRanges(string(data)))
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 2:", result)
+			return
+		}
+	}
 	data, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)

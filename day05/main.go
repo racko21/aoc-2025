@@ -3,8 +3,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/racko21/aoc-2025/utils"
 )
@@ -69,6 +71,24 @@ func part2(ranges []interval) int {
 }
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "1":
+			start := time.Now()
+			ranges, ids := parse("input.txt")
+			result := part1(ranges, ids)
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 1:", result)
+			return
+		case "2":
+			start := time.Now()
+			ranges, _ := parse("input.txt")
+			result := part2(ranges)
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 2:", result)
+			return
+		}
+	}
 	ranges, ids := parse("input.txt")
 	fmt.Println("Part 1:", part1(ranges, ids))
 	fmt.Println("Part 2:", part2(ranges))

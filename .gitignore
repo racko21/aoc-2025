@@ -34,3 +34,6 @@ massif.out.*
 
 # C-arm isolation session marker (transient, created/removed by /solve-c etc.)
 .claude/.c-arm-session
+
+# Go release binaries (built for RQ1 measurement, see root CLAUDE.md)
+day*/main_release

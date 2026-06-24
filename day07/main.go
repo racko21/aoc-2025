@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/racko21/aoc-2025/utils"
 )
@@ -96,6 +98,22 @@ func part1(path string) int { return countSplits(utils.ReadLines(path)) }
 func part2(path string) int { return countTimelines(utils.ReadLines(path)) }
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "1":
+			start := time.Now()
+			result := part1("input.txt")
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 1:", result)
+			return
+		case "2":
+			start := time.Now()
+			result := part2("input.txt")
+			fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+			fmt.Println("Part 2:", result)
+			return
+		}
+	}
 	fmt.Println("Part 1:", part1("input.txt"))
 	fmt.Println("Part 2:", part2("input.txt"))
 }

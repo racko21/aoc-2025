@@ -72,5 +72,13 @@ After completing each day (success or failure), append a JSON line to `docs/thes
 ```
 Failure categories: `correct`, `wrong_answer`, `off_by_one`, `timeout`, `misread_problem`, `wrong_algorithm`, `edge_case`, `parsing_error`, `other`
 
+## RQ1 Measurement Methodology (Go)
+Mirrors the C arm's methodology (see `c/CLAUDE.md`), fixed for all 12 days:
+- **Build**: `cd dayNN && go build -o main_release .` — never `go run` (adds recompilation variance). `main_release` binaries are gitignored.
+- **Runtime**: each `dayNN/main.go`'s `main()` accepts an optional `os.Args[1]` of `"1"` or `"2"`, running and timing only that part via `time.Now()`/`time.Since()`, printed to stderr as `runtime_ms: %.2f`. No arg preserves the original both-parts behavior (used by `go test` and prior runs) unchanged. Reported as `runtime_ms_part1`/`runtime_ms_part2`.
+- **Memory**: `/usr/bin/time -v ./main_release {1,2}` — "Maximum resident set size" (KB). Reported as `peak_memory_kb_part1`/`peak_memory_kb_part2`.
+- **Code quality**: `compiler_warnings` is the `go vet .` issue count (Go's closest equivalent to C's `gcc -Wall -Wextra -Wpedantic` count — not a like-for-like metric, see `docs/observations.md`). `golangci_lint_warnings` is recorded as an additional field only when `golangci-lint` is available; omitted entirely otherwise.
+- **Timer scope**: matched to each day's corresponding `c/dayNN/main.c`, where every `solve_part1`/`solve_part2` independently re-parses input. Where Go originally shared one `parse()` call across both parts in `main()`, the timing branches re-parse fresh per part so the comparison covers the same logical scope. One exception: day01's `solve()` computes both parts in a single fused pass and cannot be split without changing algorithm logic — see `docs/observations.md` for that caveat.
+
 ## When Compacting
 Always preserve: the current day being worked on, any failing test output, and the list of completed days with their pass/fail status.

@@ -4,8 +4,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
+	"time"
 
 	utils "github.com/racko21/aoc-2025/utils"
 )
@@ -228,7 +230,7 @@ func parseRegions(lines []string, numShapes int) []Region {
 	return regions
 }
 
-func main() {
+func countFit() int {
 	lines := utils.ReadLines("input.txt")
 	shapeOrientations, shapeCells := parseShapes(lines)
 	regions := parseRegions(lines, len(shapeOrientations))
@@ -239,5 +241,16 @@ func main() {
 			count++
 		}
 	}
-	fmt.Println("Part 1:", count)
+	return count
+}
+
+func main() {
+	if len(os.Args) > 1 && os.Args[1] == "1" {
+		start := time.Now()
+		result := countFit()
+		fmt.Fprintf(os.Stderr, "runtime_ms: %.2f\n", float64(time.Since(start).Microseconds())/1000)
+		fmt.Println("Part 1:", result)
+		return
+	}
+	fmt.Println("Part 1:", countFit())
 }
