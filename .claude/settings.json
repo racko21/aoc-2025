@@ -9,10 +9,31 @@
       "Bash(cd day* && go *)",
       "Bash(cat *)",
       "Bash(mkdir *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(gcc *)",
+      "Bash(make *)",
+      "Bash(cp *)",
+      "Bash(which *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(echo *)",
+      "Bash(ls *)",
+      "Bash(/usr/bin/time *)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Grep|Glob|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/c-arm-isolation.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write(*.go)",

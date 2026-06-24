@@ -26,3 +26,11 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# C build artifacts (binaries have no extension on Linux)
+c/day*/main
+c/day*/test_main
+massif.out.*
+
+# C-arm isolation session marker (transient, created/removed by /solve-c etc.)
+.claude/.c-arm-session
