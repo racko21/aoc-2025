@@ -80,6 +80,7 @@ class Config:
     timeout_build_sec: int
     timeout_run_sec: int
     max_tool_output_chars: int
+    max_cost_per_day_usd: Optional[float]
 
     @staticmethod
     def load(path: Path) -> "Config":
@@ -93,6 +94,7 @@ class Config:
             timeout_build_sec=raw.get("timeout_build_sec", 60),
             timeout_run_sec=raw.get("timeout_run_sec", 60),
             max_tool_output_chars=raw.get("max_tool_output_chars", 20000),
+            max_cost_per_day_usd=raw.get("max_cost_per_day_usd"),
         )
 
 
@@ -151,6 +153,13 @@ class DayResult:
     compiler_warnings: Optional[int]
     optimization_flag: Optional[str]
     compiler: Optional[str]
+    # RQ3 — iteration metrics (logged live, no backfill needed)
+    turns_used: int
+    submit_count: int
+    bash_runs: int
+    write_calls: int
+    solution_rewrites: int
+    read_calls: int
 
 
 # --------------------------------------------------------------------------- #
@@ -245,6 +254,16 @@ class Sandbox:
         # real_answers.txt — the model must never see the answer key.
         shutil.copy2(self.shared / "PROBLEM.md", self.work / "PROBLEM.md")
         shutil.copy2(self.shared / "input.txt", self.work / "input.txt")
+        # Go isolation: the sandbox lives inside the repo tree, and the repo
+        # root has a go.mod. Go tooling walks UP to find the nearest go.mod, so
+        # without a local one a sandboxed `go build` would treat the sandbox as
+        # part of the repo module and could resolve against the existing
+        # dayNN/main.go solutions. Writing a standalone go.mod here stops that
+        # upward walk and isolates the sandbox as its own module. (build.sh also
+        # creates one defensively; doing it here guarantees it before any model
+        # action.)
+        if self.lang == "go":
+            (self.work / "go.mod").write_text("module aocsolution\n\ngo 1.21\n")
 
     def real_answers(self) -> list[str]:
         """Read the answer key — HARNESS ONLY, never exposed to the model."""
@@ -487,7 +506,28 @@ def solve_day(client: Anthropic, cfg: Config, lang: str, day: int,
     notes_bits: list[str] = []
     failure_category = "incomplete"
 
+    # RQ3 iteration counters — tallied live so no post-hoc backfill is needed.
+    turns_used = 0
+    bash_runs = 0
+    write_calls = 0
+    read_calls = 0
+    solution_rewrites = 0
+    # The canonical solution filename per language (writes to it = a rewrite).
+    SOLUTION_FILE = {"python": "solution.py", "c": "main.c", "go": "main.go"}
+    sol_name = SOLUTION_FILE.get(lang)
+
     for turn in range(cfg.max_turns_per_day):
+        turns_used += 1
+        # Budget guard: abort the day if its accumulated cost crosses the
+        # configured ceiling, so a single runaway day can't drain the budget.
+        if cfg.max_cost_per_day_usd is not None:
+            running_cost = usage.cost_usd(cfg.model, cfg.pricing) or 0.0
+            if running_cost >= cfg.max_cost_per_day_usd:
+                notes_bits.append(
+                    f"Aborted: per-day cost ceiling ${cfg.max_cost_per_day_usd} "
+                    f"reached at turn {turns_used} (spent ${running_cost:.2f}).")
+                failure_category = "incomplete"
+                break
         resp = client.messages.create(
             model=cfg.model,
             max_tokens=8000,
@@ -510,6 +550,15 @@ def solve_day(client: Anthropic, cfg: Config, lang: str, day: int,
         tool_results = []
         did_submit = False
         for tu in tool_uses:
+            # tally iteration metrics live
+            if tu.name == "run_bash":
+                bash_runs += 1
+            elif tu.name == "read_file":
+                read_calls += 1
+            elif tu.name == "write_file":
+                write_calls += 1
+                if sol_name and (tu.input or {}).get("path") == sol_name:
+                    solution_rewrites += 1
             res_text, is_submit = execute_tool(tu.name, tu.input, sb, audit)
             if is_submit:
                 did_submit = True
@@ -571,6 +620,12 @@ def solve_day(client: Anthropic, cfg: Config, lang: str, day: int,
         compiler_warnings=final_verify.get("build_warnings"),
         optimization_flag=final_verify.get("optimization_flag"),
         compiler=final_verify.get("compiler"),
+        turns_used=turns_used,
+        submit_count=attempts,
+        bash_runs=bash_runs,
+        write_calls=write_calls,
+        solution_rewrites=solution_rewrites,
+        read_calls=read_calls,
     )
 
     # persist transcript + usage for audit / RQ2 ground truth

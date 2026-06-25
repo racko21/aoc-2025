@@ -8,11 +8,17 @@ model: claude-sonnet-4-6
 # failure_category="incomplete" rather than running forever.
 max_turns_per_day: 30
 
+#Per-day cost ceiling (USD). The day aborts mid-loop once accumulated cost
+# crosses this (logged incomplete with a note). Real budget protection: in the
+# Python/C runs days 10 and 12 cost $3.40-$4.79 each by running the full cap.
+# Set to null to disable.
+max_cost_per_day_usd: 2.0
+
 # Languages to run, in order. For the first run, keep this to python only —
 # prove the harness end to end before scaling. Add "c" back to re-collect its
 # RQ2 cost data once python is confirmed working.
 languages:
-  - python
+  - go
 
 # Days to run (1-12). Comment out / shorten for a pilot (e.g. [1] first).
 days: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
