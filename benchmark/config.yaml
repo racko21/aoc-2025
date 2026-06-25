@@ -1,0 +1,36 @@
+# AoC 2025 benchmark harness configuration
+
+# Model held constant across all languages (only the language varies).
+# Matches the model recorded in the existing Go and C arms.
+model: claude-sonnet-4-6
+
+# Hard cap on agent turns per day. A day that hits this is logged
+# failure_category="incomplete" rather than running forever.
+max_turns_per_day: 30
+
+# Languages to run, in order. For the first run, keep this to python only —
+# prove the harness end to end before scaling. Add "c" back to re-collect its
+# RQ2 cost data once python is confirmed working.
+languages:
+  - python
+
+# Days to run (1-12). Comment out / shorten for a pilot (e.g. [1] first).
+days: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+# Per-process timeouts (seconds).
+timeout_build_sec: 60
+timeout_run_sec: 60
+
+# Truncate any single tool result fed back to the model to this many chars,
+# so a runaway print can't blow the context window.
+max_tool_output_chars: 20000
+
+# USD per million tokens, per model. UPDATE THESE to the current published
+# rates before relying on cost_usd — verify at the Anthropic pricing page,
+# these are placeholders and may be stale.
+pricing:
+  claude-sonnet-4-6:
+    input: 3.00         # $ / Mtok input
+    output: 15.00       # $ / Mtok output
+    cache_read: 0.30    # $ / Mtok cache read
+    cache_write: 3.75   # $ / Mtok cache write

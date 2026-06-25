@@ -1,0 +1,12 @@
+{
+  "usage": {
+    "input_tokens": 1127559,
+    "output_tokens": 30421,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "cost_usd": 3.838992,
+  "model": "claude-sonnet-4-6",
+  "attempts": 0,
+  "duration_minutes": 7.53
+}
