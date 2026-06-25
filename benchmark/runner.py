@@ -285,22 +285,30 @@ def execute_tool(name: str, inp: dict, sb: Sandbox, audit) -> tuple[str, bool]:
 
     if name == "write_file":
         try:
-            p = sb._resolve(inp["path"])
+            path = inp.get("path")
+            content = inp.get("content")
+            if path is None or content is None:
+                return ("Error: write_file requires both 'path' and 'content'. "
+                        "Resend the tool call with both fields."), False
+            p = sb._resolve(path)
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(inp["content"])
-            audit(f"write_file {inp['path']} ({len(inp['content'])} bytes)")
-            return f"Wrote {inp['path']} ({len(inp['content'])} bytes).", False
+            p.write_text(content)
+            audit(f"write_file {path} ({len(content)} bytes)")
+            return f"Wrote {path} ({len(content)} bytes).", False
         except Exception as e:
             audit(f"write_file DENIED {inp.get('path')}: {e}")
             return f"Error: {e}", False
 
     if name == "read_file":
         try:
-            p = sb._resolve(inp["path"])
+            path = inp.get("path")
+            if path is None:
+                return "Error: read_file requires a 'path'. Resend with it.", False
+            p = sb._resolve(path)
             if not p.exists():
-                return f"Error: {inp['path']} does not exist.", False
+                return f"Error: {path} does not exist.", False
             txt = p.read_text()
-            audit(f"read_file {inp['path']}")
+            audit(f"read_file {path}")
             if len(txt) > cap:
                 txt = txt[:cap] + f"\n...[truncated, {len(txt)} chars total]"
             return txt, False
@@ -309,13 +317,20 @@ def execute_tool(name: str, inp: dict, sb: Sandbox, audit) -> tuple[str, bool]:
             return f"Error: {e}", False
 
     if name == "run_bash":
-        cmd = inp["command"]
-        audit(f"run_bash: {cmd}")
-        rc, out, err = run_subprocess(cmd, sb.work, sb.cfg.timeout_run_sec, shell=True)
-        body = f"exit={rc}\n--- stdout ---\n{out}\n--- stderr ---\n{err}"
-        if len(body) > cap:
-            body = body[:cap] + f"\n...[truncated]"
-        return body, False
+        try:
+            cmd = inp.get("command")
+            if cmd is None:
+                return ("Error: run_bash requires a 'command' string. "
+                        "Resend the tool call with a 'command' field."), False
+            audit(f"run_bash: {cmd}")
+            rc, out, err = run_subprocess(cmd, sb.work, sb.cfg.timeout_run_sec, shell=True)
+            body = f"exit={rc}\n--- stdout ---\n{out}\n--- stderr ---\n{err}"
+            if len(body) > cap:
+                body = body[:cap] + f"\n...[truncated]"
+            return body, False
+        except Exception as e:
+            audit(f"run_bash ERROR: {e}")
+            return f"Error running command: {e}", False
 
     if name == "submit":
         return json.dumps(inp), True
@@ -657,8 +672,11 @@ def main():
             try:
                 res = solve_day(client, cfg, lang, d, runs_dir, audit_log)
             except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
                 print(f"  ERROR: {e}")
-                audit_log(f"{dt.datetime.now(dt.timezone.utc).isoformat()} {lang} day{d:02d} FATAL {e}")
+                print(tb)
+                audit_log(f"{dt.datetime.now(dt.timezone.utc).isoformat()} {lang} day{d:02d} FATAL {e}\n{tb}")
                 continue
             with log_path.open("a") as f:
                 f.write(json.dumps(asdict(res)) + "\n")

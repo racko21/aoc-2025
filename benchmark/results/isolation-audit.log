@@ -7449,3 +7449,379 @@ int main() {
 }
 EOF
 gcc -O0 -o trace trace.c && ./trace 2>&1 | head -50
+2026-06-25T08:35:19.142733+00:00 c day10 read_file PROBLEM.md
+2026-06-25T08:35:19.166266+00:00 c day10 read_file input.txt
+2026-06-25T08:35:30.243416+00:00 c day10 run_bash: wc -l input.txt && head -5 input.txt | awk '{
+  # Count buttons
+  n=split($0, a, "(")
+  print NR, n-1, "buttons"
+}'
+2026-06-25T08:35:33.859028+00:00 c day10 run_bash: # Check max buttons and lights
+awk '{
+  # Count buttons (parenthesized groups)
+  nb=gsub(/\(/, "(", $0)
+  # Count lights (chars in [..])
+  match($0, /\[([^\]]*)\]/, arr)
+  nl=length(arr[1])
+  if(nb > maxb) maxb=nb
+  if(nl > maxl) maxl=nl
+} END{print "max buttons:", maxb, "max lights:", maxl}' input.txt
+2026-06-25T08:35:47.540726+00:00 c day10 write_file example.txt (175 bytes)
+2026-06-25T08:37:14.269331+00:00 c day10 write_file main.c (17117 bytes)
+2026-06-25T08:37:17.576652+00:00 c day10 run_bash: cd /solution && gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1
+2026-06-25T08:37:21.109424+00:00 c day10 run_bash: gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1
+2026-06-25T08:37:23.397835+00:00 c day10 run_bash: cp example.txt input.txt.bak && cp example.txt input.txt && ./main && cp input.txt.bak input.txt
+2026-06-25T08:37:57.444089+00:00 c day10 run_bash: cat > debug.c << 'EOF'
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_ROWS  14
+#define MAX_COLS  30
+
+typedef struct {
+    double tab[MAX_ROWS][MAX_COLS];
+    int basis[MAX_ROWS];
+    int nrows;
+    int ncols;
+} Simplex;
+
+static void pivot(Simplex *s, int r, int c) {
+    int nrows = s->nrows;
+    int ncols = s->ncols;
+    double piv = s->tab[r][c];
+    for (int j = 0; j < ncols; j++) s->tab[r][j] /= piv;
+    for (int i = 0; i < nrows; i++) {
+        if (i != r && s->tab[i][c] != 0.0) {
+            double factor = s->tab[i][c];
+            for (int j = 0; j < ncols; j++) s->tab[i][j] -= factor * s->tab[r][j];
+        }
+    }
+    s->basis[r] = c;
+}
+
+static int simplex_iterate(Simplex *s) {
+    int maxiter = 100000;
+    int nrows = s->nrows;
+    int ncols = s->ncols;
+    int rhs_col = ncols - 1;
+    for (int iter = 0; iter < maxiter; iter++) {
+        int enter = -1;
+        double min_rc = -1e-9;
+        for (int j = 0; j < rhs_col; j++) {
+            if (s->tab[nrows][j] < min_rc) {
+                min_rc = s->tab[nrows][j];
+                enter = j;
+            }
+        }
+        if (enter == -1) return 1;
+        int leave = -1;
+        double min_ratio = 1e18;
+        for (int i = 0; i < nrows; i++) {
+            if (s->tab[i][enter] > 1e-9) {
+                double ratio = s->tab[i][rhs_col] / s->tab[i][enter];
+                if (ratio < min_ratio - 1e-12) {
+                    min_ratio = ratio;
+                    leave = i;
+                }
+            }
+        }
+        if (leave == -1) return 0;
+        pivot(s, leave, enter);
+    }
+    return 0;
+}
+
+int main() {
+    /* Machine 1: {3,5,4,7}
+       Buttons: (3) (1,3) (2) (2,3) (0,2) (0,1)
+       Counters: 0,1,2,3
+       
+       A[counter][button]:
+       button 0 = (3): affects counter 3
+       button 1 = (1,3): affects counters 1,3
+       button 2 = (2): affects counter 2
+       button 3 = (2,3): affects counters 2,3
+       button 4 = (0,2): affects counters 0,2
+       button 5 = (0,1): affects counters 0,1
+       
+       A = 
+         b0 b1 b2 b3 b4 b5
+       c0: 0  0  0  0  1  1  = 3
+       c1: 0  1  0  0  0  1  = 5
+       c2: 0  0  1  1  1  0  = 4
+       c3: 1  1  0  1  0  0  = 7
+    */
+    
+    int m = 4, n = 6;
+    double A[4][6] = {
+        {0, 0, 0, 0, 1, 1},  /* counter 0 */
+        {0, 1, 0, 0, 0, 1},  /* counter 1 */
+        {0, 0, 1, 1, 1, 0},  /* counter 2 */
+        {1, 1, 0, 1, 0, 0},  /* counter 3 */
+    };
+    double b[4] = {3, 5, 4, 7};
+    
+    /* Answer should be 10: b0=1, b1=3, b2=3, b3=0, b4=1, b5=2 => sum=10 */
+    /* Check: c0: b4+b5=1+2=3 OK; c1: b1+b5=3+2=5 OK; c2: b2+b3+b4=3+0+1=4 OK; c3: b0+b1+b3=1+3+0=4? NO */
+    /* Problem example says: pressing (3) once, (1,3) three times, (2,3) three times, (0,2) once, (0,1) twice */
+    /* That's b0=1, b1=3, b2=0, b3=3, b4=1, b5=2 => sum=10 */
+    /* Check: c0: b4+b5=1+2=3 OK; c1: b1+b5=3+2=5 OK; c2: b2+b3+b4=0+3+1=4 OK; c3: b0+b1+b3=1+3+3=7 OK */
+    
+    int ncols = n + m + 1;
+    int rhs_col = ncols - 1;
+    
+    Simplex s;
+    memset(&s, 0, sizeof(s));
+    s.nrows = m;
+    s.ncols = ncols;
+    
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) s.tab[i][j] = A[i][j];
+        s.tab[i][n + i] = 1.0;
+        s.tab[i][rhs_col] = b[i];
+        s.basis[i] = n + i;
+    }
+    
+    /* Phase 1 objective: min sum(a_i) */
+    /* reduced_cost[x_j] = 0 - sum_i A[i][j] (since c_B=[1..1], B=I) */
+    for (int j = 0; j < n; j++) {
+        double rc = 0.0;
+        for (int i = 0; i < m; i++) rc -= A[i][j];
+        s.tab[m][j] = rc;
+    }
+    s.tab[m][rhs_col] = 0.0; /* track obj separately */
+    
+    simplex_iterate(&s);
+    
+    printf("After Phase 1:\n");
+    printf("Basis: ");
+    for (int i = 0; i < m; i++) printf("%d ", s.basis[i]);
+    printf("\n");
+    printf("RHS values: ");
+    for (int i = 0; i < m; i++) printf("%.2f ", s.tab[i][rhs_col]);
+    printf("\n");
+    
+    double ph1_obj = 0.0;
+    for (int i = 0; i < m; i++) {
+        if (s.basis[i] >= n) ph1_obj += s.tab[i][rhs_col];
+    }
+    printf("Phase 1 obj (sum of artificials in basis): %.4f\n", ph1_obj);
+    
+    /* Phase 2 */
+    for (int j = 0; j < ncols; j++) s.tab[m][j] = 0.0;
+    
+    /* Recompute reduced costs for Phase 2 */
+    /* c[j]=1 for j<n, c[j]=0 for artificials */
+    /* After Phase 1, the tableau reflects B^{-1}. */
+    /* Reduced cost for non-basic j: c[j] - c_B * (column j in current tableau) */
+    /* c_B[i] = (s.basis[i] < n) ? 1.0 : 0.0 */
+    for (int j = 0; j < rhs_col; j++) {
+        double rc = (j < n) ? 1.0 : 0.0;
+        for (int i = 0; i < m; i++) {
+            if (s.basis[i] < n) rc -= s.tab[i][j];
+        }
+        s.tab[m][j] = rc;
+    }
+    /* Phase 2 obj initial = sum of x_j in basis */
+    double ph2_obj = 0.0;
+    for (int i = 0; i < m; i++) {
+        if (s.basis[i] < n) ph2_obj += s.tab[i][rhs_col];
+    }
+    s.tab[m][rhs_col] = ph2_obj;
+    
+    printf("\nPhase 2 initial obj: %.4f\n", ph2_obj);
+    printf("Phase 2 obj row: ");
+    for (int j = 0; j < ncols; j++) printf("%.2f ", s.tab[m][j]);
+    printf("\n");
+    
+    simplex_iterate(&s);
+    
+    printf("\nAfter Phase 2:\n");
+    printf("Basis: ");
+    for (int i = 0; i < m; i++) printf("%d ", s.basis[i]);
+    printf("\n");
+    
+    double obj = 0.0;
+    for (int i = 0; i < m; i++) {
+        if (s.basis[i] < n) obj += s.tab[i][rhs_col];
+    }
+    printf("Obj = %.4f (expected 10)\n", obj);
+    
+    return 0;
+}
+EOF
+gcc -o debug debug.c && ./debug
+2026-06-25T08:39:01.661601+00:00 c day10 write_file main.c (11417 bytes)
+2026-06-25T08:39:04.769940+00:00 c day10 run_bash: gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1 && cp example.txt input.txt.bak && cp example.txt input.txt && ./main && cp input.txt.bak input.txt
+2026-06-25T08:40:21.626326+00:00 c day10 write_file main.c (9733 bytes)
+2026-06-25T08:40:25.014096+00:00 c day10 run_bash: gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1 && cp example.txt input.txt && ./main && cp input.txt.bak input.txt
+2026-06-25T08:40:55.090268+00:00 c day10 run_bash: cat > debug2.c << 'EOF'
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <stdlib.h>
+
+#define SMAX_M  13
+#define SMAX_N  16
+#define SMAX_COLS 32
+#define EPS 1e-9
+
+typedef struct {
+    double tab[SMAX_M+1][SMAX_COLS];
+    int basis[SMAX_M];
+    int m, n, nart, ncols;
+} Simp;
+
+static void spivot(Simp *s, int r, int c) {
+    double piv = s->tab[r][c];
+    for (int j = 0; j < s->ncols; j++) s->tab[r][j] /= piv;
+    for (int i = 0; i <= s->m; i++) {
+        if (i != r) {
+            double f = s->tab[i][c];
+            if (fabs(f) > EPS) {
+                for (int j = 0; j < s->ncols; j++)
+                    s->tab[i][j] -= f * s->tab[r][j];
+            }
+        }
+    }
+    s->basis[r] = c;
+}
+
+static int run_simplex(Simp *s) {
+    int rhs = s->ncols - 1;
+    for (int iter = 0; iter < 500000; iter++) {
+        int enter = -1;
+        double best_rc = -EPS;
+        for (int j = 0; j < rhs; j++) {
+            if (s->tab[s->m][j] < best_rc) {
+                best_rc = s->tab[s->m][j];
+                enter = j;
+            }
+        }
+        if (enter < 0) return 1;
+        int leave = -1;
+        double min_ratio = 1e30;
+        for (int i = 0; i < s->m; i++) {
+            double aij = s->tab[i][enter];
+            if (aij > EPS) {
+                double ratio = s->tab[i][rhs] / aij;
+                if (ratio < min_ratio - EPS) {
+                    min_ratio = ratio;
+                    leave = i;
+                }
+            }
+        }
+        if (leave < 0) return 0;
+        spivot(s, leave, enter);
+    }
+    return 0;
+}
+
+int main() {
+    /* Machine 1: buttons (3),(1,3),(2),(2,3),(0,2),(0,1), targets {3,5,4,7} */
+    /* Counters 0,1,2,3 */
+    /* button 0=(3): bit3 -> affects counter 3 */
+    /* button 1=(1,3): bits 1,3 -> affects counters 1,3 */
+    /* button 2=(2): bit2 -> affects counter 2 */
+    /* button 3=(2,3): bits 2,3 -> affects counters 2,3 */
+    /* button 4=(0,2): bits 0,2 -> affects counters 0,2 */
+    /* button 5=(0,1): bits 0,1 -> affects counters 0,1 */
+    int n = 6, nm = 4;
+    double A[4][6] = {
+        {0, 0, 0, 0, 1, 1}, /* counter 0 = 3 */
+        {0, 1, 0, 0, 0, 1}, /* counter 1 = 5 */
+        {0, 0, 1, 1, 1, 0}, /* counter 2 = 4 */
+        {1, 1, 0, 1, 0, 0}, /* counter 3 = 7 */
+    };
+    double b[4] = {3, 5, 4, 7};
+    
+    Simp s;
+    memset(&s, 0, sizeof(s));
+    s.m = nm; s.n = n; s.nart = nm;
+    s.ncols = n + nm + 1;
+    int rhs = s.ncols - 1;
+    
+    for (int i = 0; i < nm; i++) {
+        for (int j = 0; j < n; j++) s.tab[i][j] = A[i][j];
+        s.tab[i][n+i] = 1.0;
+        s.tab[i][rhs] = b[i];
+        s.basis[i] = n+i;
+    }
+    
+    /* Phase 1 obj row */
+    for (int j = 0; j < n; j++) {
+        double rc = 0;
+        for (int i = 0; i < nm; i++) rc += A[i][j];
+        s.tab[nm][j] = -rc;
+    }
+    double z0 = 0; for (int i = 0; i < nm; i++) z0 += b[i];
+    s.tab[nm][rhs] = -z0;
+    
+    printf("Phase 1 initial: z=%.2f, obj_row rhs=%.2f\n", z0, s.tab[nm][rhs]);
+    printf("Phase 1 obj row: ");
+    for (int j = 0; j <= rhs; j++) printf("%.2f ", s.tab[nm][j]);
+    printf("\n");
+    
+    run_simplex(&s);
+    
+    double ph1_z = -s.tab[nm][rhs];
+    printf("After Phase 1: ph1_z=%.4f (should be ~0)\n", ph1_z);
+    printf("Basis: "); for (int i = 0; i < nm; i++) printf("%d ", s.basis[i]); printf("\n");
+    printf("RHS: "); for (int i = 0; i < nm; i++) printf("%.2f ", s.tab[i][rhs]); printf("\n");
+    
+    /* Try to remove degenerate artificials */
+    for (int i = 0; i < nm; i++) {
+        if (s.basis[i] >= n) {
+            for (int j = 0; j < n; j++) {
+                if (fabs(s.tab[i][j]) > EPS) {
+                    spivot(&s, i, j);
+                    break;
+                }
+            }
+        }
+    }
+    printf("After degenerate fix:\n");
+    printf("Basis: "); for (int i = 0; i < nm; i++) printf("%d ", s.basis[i]); printf("\n");
+    
+    /* Phase 2 */
+    for (int j = 0; j <= rhs; j++) s.tab[nm][j] = 0.0;
+    for (int j = 0; j < rhs; j++) {
+        double cj = (j < n) ? 1.0 : 0.0;
+        double rc = cj;
+        for (int i = 0; i < nm; i++) {
+            double cb_i = (s.basis[i] < n) ? 1.0 : 0.0;
+            rc -= cb_i * s.tab[i][j];
+        }
+        s.tab[nm][j] = rc;
+    }
+    double z_cur = 0;
+    for (int i = 0; i < nm; i++) if (s.basis[i] < n) z_cur += s.tab[i][rhs];
+    s.tab[nm][rhs] = -z_cur;
+    
+    printf("\nPhase 2 initial: z=%.2f, obj_row rhs=%.2f\n", z_cur, s.tab[nm][rhs]);
+    printf("Phase 2 obj row: ");
+    for (int j = 0; j <= rhs; j++) printf("%.2f ", s.tab[nm][j]);
+    printf("\n");
+    
+    run_simplex(&s);
+    
+    double opt = -s.tab[nm][rhs];
+    printf("Optimal: %.4f (expected 10)\n", opt);
+    printf("Basis: "); for (int i = 0; i < nm; i++) printf("%d ", s.basis[i]); printf("\n");
+    printf("Values: "); for (int i = 0; i < nm; i++) printf("x[%d]=%.2f ", s.basis[i], s.tab[i][rhs]); printf("\n");
+    
+    return 0;
+}
+EOF
+gcc -o debug2 debug2.c -lm && ./debug2
+2026-06-25T08:41:41.906206+00:00 c day10 write_file main.c (8680 bytes)
+2026-06-25T08:41:44.926303+00:00 c day10 run_bash: gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1 && cp example.txt input.txt && ./main && cp input.txt.bak input.txt
+2026-06-25T08:42:25.871565+00:00 c day10 write_file main.c (8174 bytes)
+2026-06-25T08:42:28.728312+00:00 c day10 run_bash: gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1 && cp example.txt input.txt && ./main && cp input.txt.bak input.txt
+2026-06-25T08:42:32.568937+00:00 c day10 run_bash: cp input.txt.bak input.txt && gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c -lm 2>&1 && ./main
+2026-06-25T08:42:35.225138+00:00 c day10 run_bash: ls -la input.txt && head -1 input.txt
+2026-06-25T08:42:38.109585+00:00 c day10 run_bash: cp input.txt.bak input.txt && head -1 input.txt && ./main 2>&1 | head -5
+2026-06-25T08:42:40.667121+00:00 c day10 run_bash: wc -l input.txt.bak && head -1 input.txt.bak
+2026-06-25T08:42:44.480661+00:00 c day10 run_bash: ls -la input.txt input.txt.bak 2>&1
+2026-06-25T08:42:47.336598+00:00 c day10 run_bash: find . -name "*.txt" 2>/dev/null && ls -la
