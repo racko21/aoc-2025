@@ -1,0 +1,42 @@
+# AoC 2025 benchmark — OPUS 4.8 capability probe
+#
+# Targeted probe, NOT part of the controlled three-language study. Re-runs the
+# universally-hard days (10, 12) that failed under Sonnet in every language,
+# using Opus 4.8, to test whether higher model capability cracks them. This
+# introduces a second variable (model) — treat as a capability probe and
+# document the model swap as a confound vs. the Sonnet three-language study.
+
+# Opus 4.8 (API model ID claude-opus-4-8). $5/$25 per Mtok, verified Jun 2026.
+model: claude-opus-4-8
+
+# Turn cap. Opus 4.8 defaults to "high" effort with adaptive thinking, so a
+# turn may consume more tokens than Sonnet; the cost ceiling is the real guard.
+max_turns_per_day: 30
+
+# Per-day cost ceiling (USD). $6/day x 2 days = $12 max total. Note the check
+# fires at the START of the turn after the threshold is crossed, so a day can
+# overshoot by ~one Opus turn ($0.30-0.60) — budget ~$6.50/day worst case.
+max_cost_per_day_usd: 6.0
+
+languages:
+  - go
+
+# Only the two universally-hard days that failed in every language under Sonnet.
+days: [10, 12]
+
+timeout_build_sec: 60
+timeout_run_sec: 60
+max_tool_output_chars: 20000
+
+# Pricing per Mtok. Opus 4.8 verified Jun 2026: $5 input / $25 output.
+pricing:
+  claude-opus-4-8:
+    input: 5.00
+    output: 25.00
+    cache_read: 0.50
+    cache_write: 6.25
+  claude-sonnet-4-6:
+    input: 3.00
+    output: 15.00
+    cache_read: 0.30
+    cache_write: 3.75

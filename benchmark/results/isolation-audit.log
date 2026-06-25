@@ -9751,3 +9751,446 @@ echo "debug written"
 2026-06-25T11:23:29.533060+00:00 go day12 write_file check_test.go (2963 bytes)
 2026-06-25T11:23:31.436292+00:00 go day12 run_bash: go test -v -run TestShape4 2>&1
 2026-06-25T11:24:36.374201+00:00 go day12 write_file main.go (9821 bytes)
+2026-06-25T11:53:04.895793+00:00 go day10 run_bash: cd "$(dirname $0)" 2>/dev/null; wc -l input.txt; head -3 input.txt; echo "---"; awk '{n=gsub(/\(/,"("); print n}' input.txt | sort -n | tail -5; echo "max lights:"; grep -o '\[[^]]*\]' input.txt | awk '{print length($0)-2}' | sort -n | tail -5
+2026-06-25T11:53:07.078632+00:00 go day10 run_bash: ls; pwd
+2026-06-25T11:53:12.187562+00:00 go day10 run_bash: wc -l input.txt; head -3 input.txt; echo "--- num buttons per line:"; awk '{n=gsub(/\(/,"("); print n}' input.txt | sort -n | tail -3; echo "--- num lights:"; grep -o '\[[^]]*\]' input.txt | awk '{print length($0)-2}' | sort -n | tail -3; echo "--- max joltage:"; grep -o '{[^}]*}' input.txt | tr ',{}' '\n' | sort -n | tail -3
+2026-06-25T11:53:22.006401+00:00 go day10 run_bash: awk '{nb=gsub(/\(/,"("); nl=index($0,"]")-2; print nb, nl}' input.txt | sort | uniq -c | sort -rn | head
+2026-06-25T11:53:35.900698+00:00 go day10 run_bash: cat > /tmp/rank.py << 'EOF'
+import re
+def parse(line):
+    lights=line[line.index('[')+1:line.index(']')]
+    nl=len(lights)
+    btns=re.findall(r'\(([^)]*)\)',line)
+    bs=[ [int(x) for x in b.split(',')] for b in btns]
+    jolt=line[line.index('{')+1:line.index('}')]
+    jolt=[int(x) for x in jolt.split(',')]
+    return nl,bs,jolt
+maxfree=0
+for line in open('input.txt'):
+    line=line.strip()
+    if not line:continue
+    nl,bs,jolt=parse(line)
+    nb=len(bs)
+    # matrix nl x nb over rationals; rank
+    import fractions
+    M=[[0]*nb for _ in range(nl)]
+    for bi,b in enumerate(bs):
+        for li in b: M[li][bi]=1
+    # gaussian elim rank
+    rank=0
+    rows=[row[:] for row in M]
+    cols=nb
+    r=0
+    for c in range(cols):
+        piv=None
+        for i in range(r,nl):
+            if rows[i][c]!=0: piv=i;break
+        if piv is None: continue
+        rows[r],rows[piv]=rows[piv],rows[r]
+        pv=rows[r][c]
+        for i in range(nl):
+            if i!=r and rows[i][c]!=0:
+                f=rows[i][c]/pv
+                for cc in range(cols):
+                    rows[i][cc]-=f*rows[r][cc]
+        r+=1
+        if r==nl:break
+    rank=r
+    free=nb-rank
+    maxfree=max(maxfree,free)
+    print(nb,nl,rank,free)
+print("maxfree",maxfree)
+EOF
+python3 /tmp/rank.py | tail -5
+2026-06-25T11:54:10.621947+00:00 go day10 write_file main.go (5751 bytes)
+2026-06-25T11:54:15.287399+00:00 go day10 run_bash: cat > example.txt << 'EOF'
+[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
+EOF
+cp input.txt input.real; cp example.txt input.txt
+go build -o main . && ./main
+cp input.real input.txt; rm input.real
+2026-06-25T11:54:17.870384+00:00 go day10 run_bash: time ./main
+2026-06-25T11:55:20.489891+00:00 go day10 run_bash: time ./main 1
+2026-06-25T11:55:31.170668+00:00 go day10 run_bash: python3 /tmp/rank.py | awk '{print $4}' | sort | uniq -c
+2026-06-25T11:55:53.615241+00:00 go day10 write_file p2.go (2952 bytes)
+2026-06-25T11:56:01.424536+00:00 go day10 run_bash: python3 - << 'EOF'
+import re
+s=open('main.go').read()
+# remove the part2machine function block
+start=s.index('// Part 2: minimal sum')
+# find func part2machine ... matching closing brace. It's a top-level func ending with "\n}\n"
+fstart=s.index('func part2machine(m machine) int {', start)
+# find the matching close: scan braces
+i=s.index('{', fstart)
+depth=0
+j=i
+while True:
+    if s[j]=='{':depth+=1
+    elif s[j]=='}':
+        depth-=1
+        if depth==0:break
+    j+=1
+# remove from start(comment) to j+1
+end=j+1
+s=s[:start]+s[end+1:]
+open('main.go','w').write(s)
+print("done")
+EOF
+# add abs helper to p2.go
+cat >> p2.go << 'EOF'
+
+func abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+EOF
+go build -o main . 2>&1 | head
+2026-06-25T11:56:05.379714+00:00 go day10 run_bash: python3 - << 'EOF'
+s=open('p2.go').read()
+bad='''	x := make([]int, nb)
+	best := -1
+
+	var eval func() {
+		eval = func() {}
+	}
+	_ = eval
+	fvals := make([]int, nfree)'''
+good='''	x := make([]int, nb)
+	best := -1
+	fvals := make([]int, nfree)'''
+s=s.replace(bad,good)
+open('p2.go','w').write(s)
+print("ok")
+EOF
+go build -o main . 2>&1 | head
+2026-06-25T11:56:08.089716+00:00 go day10 run_bash: cp input.txt input.real; cp example.txt input.txt
+./main
+cp input.real input.txt; rm input.real
+echo "=== real ==="; time ./main
+2026-06-25T11:56:13.691546+00:00 go day10 run_bash: ./main 1; ./main 2
+2026-06-25T11:56:21.368940+00:00 go day10 run_bash: python3 - << 'EOF'
+main=open('main.go').read()
+p2=open('p2.go').read()
+# strip package line from p2
+lines=p2.split('\n')
+out=[]
+skip=True
+for l in lines:
+    if l.startswith('package '):
+        continue
+    out.append(l)
+p2body='\n'.join(out)
+main=main.rstrip()+'\n'+p2body+'\n'
+open('main.go','w').write(main)
+print("merged")
+EOF
+rm p2.go
+go build -o main . 2>&1 | head
+echo "build done"
+./main
+2026-06-25T11:56:24.785263+00:00 go day10 run_bash: cp input.txt input.real; cp example.txt input.txt; ./main; cp input.real input.txt; rm input.real
+2026-06-25T11:56:30.060088+00:00 go day12 read_file input.txt
+2026-06-25T11:56:36.054384+00:00 go day12 run_bash: cd /tmp 2>/dev/null; echo "shapes"; head -30 /dev/stdin <<'EOF'
+EOF
+echo done
+2026-06-25T11:56:45.718569+00:00 go day12 run_bash: python3 -c "
+# example shapes
+shapes=['''###
+##.
+##.''','''###
+##.
+.##''','''.##
+###
+##.''','''##.
+###
+##.''','''###
+#..
+###''','''###
+.#.
+###''']
+cells=[s.count('#') for s in shapes]
+print('cells',cells)
+# region2: 1 0 1 0 2 2
+r2=[1,0,1,0,2,2]
+r3=[1,0,1,0,3,2]
+print('r2 cells', sum(c*n for c,n in zip(cells,r2)), 'area',12*5)
+print('r3 cells', sum(c*n for c,n in zip(cells,r3)), 'area',12*5)
+print('r1 cells', 2*cells[4],'area',16)
+"
+
+2026-06-25T11:56:57.067339+00:00 go day12 run_bash: cd /tmp; cat > a.py <<'EOF'
+import re
+data=open('/dev/stdin').read()
+EOF
+echo "need input"
+2026-06-25T11:57:00.388245+00:00 go day12 run_bash: ls; echo ---; wc -l input.txt; head -25 input.txt
+2026-06-25T11:57:07.173570+00:00 go day12 run_bash: cd /tmp; cp /dev/null x; python3 <<'EOF'
+import re
+lines=open('input.txt').read().split('\n') if False else open('/tmp/_').read() if False else None
+EOF
+python3 - <<'EOF'
+import re
+txt=open('input.txt').read()
+parts=txt.strip().split('\n\n')
+shapes=[]
+regions=[]
+for p in parts:
+    pl=p.split('\n')
+    if ':' in pl[0] and 'x' not in pl[0]:
+        shapes.append('\n'.join(pl[1:]))
+# regions are lines with x
+regions=[]
+for line in txt.split('\n'):
+    line=line.strip()
+    m=re.match(r'(\d+)x(\d+): (.*)',line)
+    if m:
+        w=int(m.group(1)); h=int(m.group(2)); cnts=list(map(int,m.group(3).split()))
+        regions.append((w,h,cnts))
+cells=[s.count('#') for s in shapes]
+print('cells',cells)
+print('numregions',len(regions))
+# density stats
+import statistics
+dens=[]
+for w,h,c in regions:
+    used=sum(ci*cells[i] for i,ci in enumerate(c))
+    dens.append(used/(w*h))
+print('min',min(dens),'max',max(dens))
+# count how many exceed area
+print('exceed area', sum(1 for d in dens if d>1))
+EOF
+2026-06-25T11:57:13.845917+00:00 go day12 run_bash: cd "$(dirname "$(find / -name input.txt 2>/dev/null | head -1)")"; pwd; python3 - <<'EOF'
+import re
+txt=open('input.txt').read()
+shapes=[]
+for blk in txt.split('\n\n'):
+    bl=blk.split('\n')
+    if re.match(r'^\d+:$',bl[0]):
+        shapes.append('\n'.join(bl[1:]))
+cells=[s.count('#') for s in shapes]
+print('cells',cells)
+regions=[]
+for line in txt.split('\n'):
+    m=re.match(r'(\d+)x(\d+): (.*)',line.strip())
+    if m:
+        regions.append((int(m.group(1)),int(m.group(2)),list(map(int,m.group(3).split()))))
+print('numregions',len(regions))
+dens=[]
+for w,h,c in regions:
+    used=sum(ci*cells[i] for i,ci in enumerate(c))
+    dens.append(used/(w*h))
+print('min',min(dens),'max',max(dens))
+print('exceed area', sum(1 for d in dens if d>1))
+print('count>=0.95',sum(1 for d in dens if d>=0.95))
+print('count>=0.9',sum(1 for d in dens if d>=0.9))
+EOF
+2026-06-25T11:57:23.564353+00:00 go day12 run_bash: find / -name input.txt 2>/dev/null | xargs -I{} sh -c 'echo {}; head -1 {}'
+2026-06-25T11:57:32.430694+00:00 go day12 run_bash: python3 - <<'EOF'
+import re
+txt=open('input.txt').read()
+shapes=[]
+for blk in txt.split('\n\n'):
+    bl=blk.split('\n')
+    if re.match(r'^\d+:$',bl[0]):
+        shapes.append('\n'.join(bl[1:4]))
+cells=[s.count('#') for s in shapes]
+print('cells',cells,'numshapes',len(shapes))
+regions=[]
+for line in txt.split('\n'):
+    m=re.match(r'(\d+)x(\d+): (.*)',line.strip())
+    if m:
+        regions.append((int(m.group(1)),int(m.group(2)),list(map(int,m.group(3).split()))))
+print('numregions',len(regions))
+dens=[]
+for w,h,c in regions:
+    used=sum(ci*cells[i] for i,ci in enumerate(c))
+    dens.append(used/(w*h))
+print('min',min(dens),'max',max(dens))
+print('exceed area', sum(1 for d in dens if d>1))
+import collections
+buckets=collections.Counter()
+for d in dens:
+    buckets[round(d,1)]+=1
+for k in sorted(buckets): print(k,buckets[k])
+EOF
+2026-06-25T11:57:38.768754+00:00 go day12 run_bash: python3 - <<'EOF'
+import re
+txt=open('input.txt').read()
+shapes=[]
+for blk in txt.split('\n\n'):
+    bl=blk.split('\n')
+    if re.match(r'^\d+:$',bl[0]):
+        shapes.append('\n'.join(bl[1:4]))
+cells=[s.count('#') for s in shapes]
+regions=[]
+for line in txt.split('\n'):
+    m=re.match(r'(\d+)x(\d+): (.*)',line.strip())
+    if m:
+        regions.append((int(m.group(1)),int(m.group(2)),list(map(int,m.group(3).split()))))
+import collections
+diff=collections.Counter()
+for w,h,c in regions:
+    used=sum(ci*cells[i] for i,ci in enumerate(c))
+    diff[used-w*h]+=1
+for k in sorted(diff): print(k,diff[k])
+EOF
+2026-06-25T11:57:54.225822+00:00 go day12 run_bash: python3 - <<'EOF'
+import re
+txt=open('input.txt').read()
+shapes=[]
+for blk in txt.split('\n\n'):
+    bl=blk.split('\n')
+    if re.match(r'^\d+:$',bl[0]):
+        shapes.append('\n'.join(bl[1:4]))
+cells=[s.count('#') for s in shapes]
+regions=[]
+for line in txt.split('\n'):
+    m=re.match(r'(\d+)x(\d+): (.*)',line.strip())
+    if m:
+        regions.append((int(m.group(1)),int(m.group(2)),list(map(int,m.group(3).split()))))
+# check: among area-fitting regions, does naive 3x3 box packing suffice?
+nfit_area=0
+naive_ok=0
+for w,h,c in regions:
+    used=sum(ci*cells[i] for i,ci in enumerate(c))
+    if used<=w*h:
+        nfit_area+=1
+        total=sum(c)
+        boxes=(w//3)*(h//3)
+        if total<=boxes: naive_ok+=1
+print('area-fit',nfit_area,'naive3x3-fit',naive_ok)
+# total pieces range
+print('pieces min/max',min(sum(c) for _,_,c in regions),max(sum(c) for _,_,c in regions))
+EOF
+2026-06-25T11:58:13.364065+00:00 go day12 run_bash: python3 - <<'EOF'
+# verify on example that area-fit + (naive OR realpack) gives correct answer
+# example: only r2 and r3 are tight. r1 naive: total2, boxes (4//3)*(4//3)=1, 2>1 naive fail, area 14<=16 ok -> needs realpack
+# So we DO need real packing for example. Let me just confirm the structure.
+print("example needs real packing for tight cases")
+EOF
+2026-06-25T11:58:44.663152+00:00 go day12 write_file main.go (5750 bytes)
+2026-06-25T11:58:50.527277+00:00 go day12 write_file example.txt (149 bytes)
+2026-06-25T11:58:53.462569+00:00 go day12 run_bash: cp input.txt input.bak; cp example.txt input.txt; go build -o main main.go && ./main 1; cp input.bak input.txt; rm input.bak
+2026-06-25T11:59:02.082108+00:00 go day12 run_bash: python3 -c "print('shape4 in 4x4: AAA. / ABAB / ABAB / .BBB -- piece A occupies (0,0)(0,1)(0,2)(1,0)(1,2)(2,0)(2,2)? no that is 7 cells but shape4 is ###/#../### = (0,0)(0,1)(0,2)(1,0)(2,0)(2,1)(2,2)')"
+2026-06-25T11:59:29.680127+00:00 go day12 write_file main.go (4913 bytes)
+2026-06-25T11:59:34.716613+00:00 go day12 run_bash: cp input.txt input.bak; cp example.txt input.txt; go build -o main main.go && ./main 1; cp input.bak input.txt; rm input.bak
+2026-06-25T11:59:45.224816+00:00 go day12 run_bash: cat > t.go <<'EOF'
+package main
+EOF
+python3 - <<'EOF'
+# brute force check in python: can two shape4 fit in 4x4?
+shape='''###
+#..
+###'''
+base=[(r,c) for r,row in enumerate(shape.split('\n')) for c,ch in enumerate(row) if ch=='#']
+def rot(cells): return [(c,-r) for r,c in cells]
+def flip(cells): return [(r,-c) for r,c in cells]
+def norm(cells):
+    mr=min(r for r,c in cells); mc=min(c for r,c in cells)
+    return tuple(sorted((r-mr,c-mc) for r,c in cells))
+oris=set()
+cur=base
+for f in range(2):
+    c=cur
+    for _ in range(4):
+        oris.add(norm(c)); c=rot(c)
+    cur=flip(cur)
+oris=list(oris)
+print('numoris',len(oris))
+W=H=4
+def place(grid,ori,pr,pc):
+    cells=[]
+    for r,c in ori:
+        rr,cc=pr+r,pc+c
+        if rr<0 or rr>=H or cc<0 or cc>=W or (rr,cc) in grid: return None
+        cells.append((rr,cc))
+    return cells
+def solve(grid,n):
+    if n==0: return True
+    # first empty
+    for p in range(W*H):
+        pr,pc=divmod(p,W)
+        if (pr,pc) not in grid: break
+    for ori in oris:
+        for ar,ac in ori:
+            cells=place(grid,[(r-ar+pr-pr,c-ac) for r,c in ori],0,0) # placeholder
+    return None
+# simpler full search
+import itertools
+def fits():
+    # positions for one piece
+    def positions():
+        res=[]
+        for ori in oris:
+            maxr=max(r for r,c in ori); maxc=max(c for r,c in ori)
+            for dr in range(H-maxr):
+                for dc in range(W-maxc):
+                    res.append(frozenset((r+dr,c+dc) for r,c in ori))
+        return res
+    pos=positions()
+    for a in pos:
+        for b in pos:
+            if not (a&b):
+                return True,a,b
+    return False,None,None
+print(fits()[0])
+EOF
+2026-06-25T12:00:00.103798+00:00 go day12 run_bash: cat > dbg.go <<'EOF'
+package main
+import ("fmt")
+func rotate2(cells [][2]int) [][2]int { out:=make([][2]int,len(cells)); for i,p:=range cells{out[i]=[2]int{p[1],-p[0]}}; return out }
+func flip2(cells [][2]int) [][2]int { out:=make([][2]int,len(cells)); for i,p:=range cells{out[i]=[2]int{p[0],-p[1]}}; return out }
+func norm2(cells [][2]int)[][2]int{
+ mr,mc:=1<<30,1<<30
+ for _,p:=range cells{if p[0]<mr{mr=p[0]};if p[1]<mc{mc=p[1]}}
+ out:=make([][2]int,len(cells))
+ for i,p:=range cells{out[i]=[2]int{p[0]-mr,p[1]-mc}}
+ return out
+}
+func main(){
+ base:=[][2]int{{0,0},{0,1},{0,2},{1,0},{2,0},{2,1},{2,2}}
+ var oris [][][2]int
+ cur:=base
+ for f:=0;f<2;f++{
+  c:=cur
+  for r:=0;r<4;r++{ oris=append(oris,norm2(c)); c=rotate2(c) }
+  cur=flip2(cur)
+ }
+ fmt.Println("oris",len(oris))
+ W,H:=4,4
+ grid:=make([]bool,16)
+ var solve func(int,int)bool
+ solve=func(placed,sp int)bool{
+  if placed==2{return true}
+  pos:=-1
+  for p:=sp;p<16;p++{if !grid[p]{pos=p;break}}
+  if pos<0{return false}
+  pr,pc:=pos/W,pos%W
+  for _,ori:=range oris{
+   for _,anchor:=range ori{
+    or0,oc0:=anchor[0],anchor[1]
+    ok:=true
+    for _,cell:=range ori{
+     rr:=pr+(cell[0]-or0); cc:=pc+(cell[1]-oc0)
+     if rr<0||rr>=H||cc<0||cc>=W||grid[rr*W+cc]{ok=false;break}
+    }
+    if !ok{continue}
+    for _,cell:=range ori{rr:=pr+(cell[0]-or0);cc:=pc+(cell[1]-oc0);grid[rr*W+cc]=true}
+    if solve(placed+1,pos){return true}
+    for _,cell:=range ori{rr:=pr+(cell[0]-or0);cc:=pc+(cell[1]-oc0);grid[rr*W+cc]=false}
+   }
+  }
+  return false
+ }
+ fmt.Println(solve(0,0))
+}
+EOF
+go run dbg.go
+2026-06-25T12:00:30.304392+00:00 go day12 write_file main.go (5388 bytes)
+2026-06-25T12:00:33.914332+00:00 go day12 run_bash: cp input.txt input.bak; cp example.txt input.txt; go build -o main main.go && timeout 30 ./main 1; echo "exit $?"; cp input.bak input.txt; rm input.bak
+2026-06-25T12:00:38.495963+00:00 go day12 run_bash: time ./main 1
+2026-06-25T12:00:42.978350+00:00 go day12 run_bash: grep -i "part two\|part 2\|--- Part" PROBLEM.md || echo "no part 2"
