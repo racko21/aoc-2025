@@ -1,0 +1,50 @@
+# AoC 2025 benchmark — OPUS 4.8 capability probe, part 2
+#
+# Retries the remaining Sonnet FAILURES (excluding days 10 & 12, already done)
+# with Opus 4.8. These are all "wrong_answer" cases — the model produced a
+# solution but got it wrong — so they're prime candidates for a stronger model
+# to fix. Targeted capability probe, not part of the controlled Sonnet study.
+#
+# Days that failed under Sonnet (excl. 10 & 12):
+#   C  : day 3 (wrong_answer), day 7 (wrong_answer)
+#   Go : day 5 (wrong_answer), day 8 (wrong_answer)
+#
+# Because these span two languages and the harness runs one --lang at a time,
+# run this config as TWO commands (see below). The days: list here is the union;
+# pass the per-language subset via --days so it doesn't try days that didn't fail.
+#
+#   python runner.py --config config.opus-wrong.yaml --lang c  --days 3,7
+#   python runner.py --config config.opus-wrong.yaml --lang go --days 5,8
+
+model: claude-opus-4-8
+
+max_turns_per_day: 30
+
+# Per-day cost ceiling (USD) = 2.0 as requested. These were cheaper days under
+# Sonnet ($1.17-$2.49), and wrong_answers usually resolve faster than the
+# runaway incompletes, so $2/day should comfortably cover a successful solve.
+# 4 days x $2 = $8 max total. Note ~one-turn overshoot at Opus rates.
+max_cost_per_day_usd: 2.0
+
+languages:
+  - c
+  - go
+
+# Union of the failed days across both languages; scope per-language with --days.
+days: [3, 5, 7, 8]
+
+timeout_build_sec: 60
+timeout_run_sec: 60
+max_tool_output_chars: 20000
+
+pricing:
+  claude-opus-4-8:
+    input: 5.00
+    output: 25.00
+    cache_read: 0.50
+    cache_write: 6.25
+  claude-sonnet-4-6:
+    input: 3.00
+    output: 15.00
+    cache_read: 0.30
+    cache_write: 3.75

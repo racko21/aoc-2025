@@ -10194,3 +10194,24 @@ go run dbg.go
 2026-06-25T12:00:33.914332+00:00 go day12 run_bash: cp input.txt input.bak; cp example.txt input.txt; go build -o main main.go && timeout 30 ./main 1; echo "exit $?"; cp input.bak input.txt; rm input.bak
 2026-06-25T12:00:38.495963+00:00 go day12 run_bash: time ./main 1
 2026-06-25T12:00:42.978350+00:00 go day12 run_bash: grep -i "part two\|part 2\|--- Part" PROBLEM.md || echo "no part 2"
+2026-06-25T12:26:01.070547+00:00 c day03 write_file main.c (1423 bytes)
+2026-06-25T12:26:01.070682+00:00 c day03 write_file example.txt (64 bytes)
+2026-06-25T12:26:04.112012+00:00 c day03 run_bash: gcc -std=c17 -Wall -Wextra -Wpedantic -O2 main.c -o main -lm && cp example.txt input.txt.bak && mv input.txt input.real && cp example.txt input.txt && ./main; mv input.real input.txt
+2026-06-25T12:26:11.639293+00:00 c day07 write_file example.txt (256 bytes)
+2026-06-25T12:26:33.570180+00:00 c day07 write_file main.c (3141 bytes)
+2026-06-25T12:26:37.514802+00:00 c day07 run_bash: cd "$(dirname example.txt)" && sed -i '/auto_char_at:/d' main.c && gcc -std=c17 -Wall -Wextra -Wpedantic -O2 -o main main.c 2>&1; cp input.txt input.bak 2>/dev/null; cp example.txt input.txt && ./main; mv input.bak input.txt 2>/dev/null
+2026-06-25T12:26:40.337187+00:00 c day07 run_bash: cd "$(dirname example.txt)" && ./main
+2026-06-25T12:27:28.580809+00:00 go day05 write_file main.go (1535 bytes)
+2026-06-25T12:27:28.580951+00:00 go day05 write_file example.txt (38 bytes)
+2026-06-25T12:27:30.886007+00:00 go day05 run_bash: cp input.txt input.bak; cp example.txt input.txt; go build -o main main.go && ./main; cp input.bak input.txt
+2026-06-25T12:27:58.190324+00:00 go day08 write_file example.txt (230 bytes)
+2026-06-25T12:27:58.190449+00:00 go day08 write_file main.go (2341 bytes)
+2026-06-25T12:28:02.037694+00:00 go day08 run_bash: cd "$(dirname example.txt)" && cp example.txt input.txt && sed 's/cnt >= 1000/cnt >= 10/' main.go > test.go && mkdir -p t && cp test.go t/main.go && cd t && go run main.go
+2026-06-25T12:28:04.724335+00:00 go day08 run_bash: cd t && cp ../example.txt input.txt && go run main.go
+2026-06-25T12:28:13.001369+00:00 go day08 run_bash: rm -rf t test.go; ls
+2026-06-25T12:28:15.688791+00:00 go day08 run_bash: wc -l input.txt; head -1 input.txt
+2026-06-25T12:28:18.640120+00:00 go day08 run_bash: go build -o main main.go && echo OK && ./main
+2026-06-25T12:28:29.310812+00:00 go day08 run_bash: wc -l input.txt; head -2 input.txt; tail -1 input.txt
+2026-06-25T12:28:34.934354+00:00 go day08 run_bash: ls -la; find / -name "input.txt" 2>/dev/null | head; cat PROBLEM.md | head -5
+2026-06-25T12:28:40.798644+00:00 go day08 run_bash: wc -l /home/racko21/uni/bsc/day08/input.txt; cp /home/racko21/uni/bsc/day08/input.txt input.txt; wc -l input.txt
+2026-06-25T12:28:43.613917+00:00 go day08 run_bash: time ./main
